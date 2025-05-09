@@ -72,7 +72,7 @@ def gating_fct_l(g_l, v, E_l):
     return i_l
 
 
-def plot_trajectories(traj):
+def plot_trajectories(traj, t):
     # Extract variables
     v = traj[:, 0]
     m = traj[:, 1]
@@ -169,28 +169,28 @@ def count_spikes(v_traj, thresh):
     return spikes
 
 
-dt = 0.025
-T = 50
-t = np.arange(0.0, T + dt, dt)
-amp = 3.0
-# step current:
-I = lambda t: amp if 10.0 <= t <= 20.0 else 0.0
-# initial state:
-x0 = np.array(
-    [
-        -65.0,
-        calc_x_inf(alpha_m(-65.0), beta_m(-65.0)),
-        calc_x_inf(alpha_n(-65.0), beta_n(-65.0)),
-        calc_x_inf(alpha_h(-65.0), beta_h(-65.0)),
-    ]
-)
+def run_experiment(T=50, dt=0.025, amp=3.0, i_c_start=10.0, i_c_end=20.0, i_c_rest=0.0, v_0=-65.0):
+    t = np.arange(0.0, T + dt, dt)
+    # step current:
+    I = lambda t: amp if i_c_start <= t <= i_c_end else i_c_rest
+    # initial state:
+    x0 = np.array(
+        [
+            v_0,
+            calc_x_inf(alpha_m(v_0), beta_m(v_0)),
+            calc_x_inf(alpha_n(v_0), beta_n(v_0)),
+            calc_x_inf(alpha_h(v_0), beta_h(v_0)),
+        ]
+    )
 
-# integrate the system:
-traj = euler_integrate(HH_derivative(I), x0, t)
+    # integrate the system:
+    traj = euler_integrate(HH_derivative(I), x0, t)
 
-# voltage trace
-v_traj = traj[:, 0]
+    # voltage trace
+    v_traj = traj[:, 0]
 
-print(count_spikes(v_traj, 0.0))
+    print(count_spikes(v_traj, 0.0))
+    return traj, t
 
-plot_trajectories(traj)
+traj, t = run_experiment()
+plot_trajectories(traj, t)
