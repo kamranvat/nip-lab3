@@ -28,50 +28,33 @@ def RC_derivative(tau, I):
     return deriv
 
 
-def calc_x_inf(alpha_x, beta_x):
-    # steady state value of x:
-    x = alpha_x / (alpha_x + beta_x)
-    return x
+def alpha_m(v):
+    return 0.32 * (v + 54) / (1 - np.exp(-(v + 54) / 4))
 
+def beta_m(v):
+    return 0.28 * (v + 27) / (np.exp((v + 27) / 5) - 1)
 
-def calc_tau(alpha_x:float, beta_x:float):
-    return 1 / (alpha_x + beta_x)
-
-
-def calc_xdot(x, x_inf, tau):
-    # calculate dx/dx x:
-    return -(1 / tau) * (x - x_inf)
-
-
-def alpha_n(v:float):
-    return 0.032 * ((v + 52) / 1 - np.exp(-(v + 52) / 50))
-
-
-def beta_n(v:float):
-    return 0.5 * np.exp(-(v + 57) / 40)
-
-
-def alpha_m(v:float):
-    alpha_m = 0.32 * ((v + 54) / 1 - np.exp(-(v + 54) / 4))
-    if type(v) == float:
-        print(v)
-
-    if type(alpha_m) == float:
-        print(alpha_m)
-
-    return alpha_m
-
-
-def beta_m(v:float):
-    return 0.28 * ((v + 27) / np.exp((v + 27) / 5) - 1)
-
-
-def alpha_h(v:float):
+def alpha_h(v):
     return 0.128 * np.exp(-(v + 50) / 18)
 
-
-def beta_h(v:float):
+def beta_h(v):
     return 4 / (1 + np.exp(-(v + 27) / 5))
+
+def alpha_n(v):
+    return 0.032 * (v + 52) / (1 - np.exp(-(v + 52) / 5))
+
+def beta_n(v):
+    return 0.5 * np.exp(-(v + 57) / 40)
+
+# Helper functions
+def calc_x_inf(alpha_x, beta_x):
+    return alpha_x / (alpha_x + beta_x)
+
+def calc_tau(alpha_x, beta_x):
+    return 1 / (alpha_x + beta_x)
+
+def calc_xdot(x, x_inf, tau):
+    return -(1 / tau) * (x - x_inf)
 
 
 def gating_fct_na(g_na, m, h, v, E_na):
@@ -92,7 +75,7 @@ def gating_fct_l(g_l, v, E_l):
     return i_l
 
 
-def HH_derivative(tau, I):
+def HH_derivative(I):
     # I is I_c (the step current)
     # c_m dv/dt = i_c - i_na - i_k - i_l
     # all the parameters:
@@ -105,33 +88,28 @@ def HH_derivative(tau, I):
     E_l = -65.0
 
 
-
-    # get infs from current voltage
-    m_inf = lambda v: calc_x_inf(alpha_m(v), beta_m(v))
-    n_inf = lambda v: calc_x_inf(alpha_n(v), beta_n(v))
-    h_inf = lambda v: calc_x_inf(alpha_h(v), beta_h(v))
-
-    # tau with current voltage
-    tau_m = lambda v: calc_tau(alpha_m(v), beta_m(v))
-    tau_n = lambda v: calc_tau(alpha_n(v), beta_n(v))
-    tau_h = lambda v: calc_tau(alpha_h(v), beta_h(v))
-
     def derivs(t, x):
-        # unpack x into V, m, n, h:
         v, m, n, h = x
 
-        # do all gate updates (the calc_xdot function)
-        mdot = calc_xdot(m, m_inf(v), tau_m(v))
-        ndot = calc_xdot(n, n_inf(v), tau_n(v))
-        hdot = calc_xdot(h, h_inf(v), tau_h(v))
+        # Gating variables
+        m_inf = calc_x_inf(alpha_m(v), beta_m(v))
+        n_inf = calc_x_inf(alpha_n(v), beta_n(v))
+        h_inf = calc_x_inf(alpha_h(v), beta_h(v))
 
-        # calculate all currents (gating_fct_na, gating_fct_k, gating_fct_l)
-        i_na = gating_fct_na(g_na, m, h, v, E_na)
-        i_k = gating_fct_k(g_k, n, v, E_k)
-        i_l = gating_fct_l(g_l, v, E_l)
+        tau_m = calc_tau(alpha_m(v), beta_m(v))
+        tau_n = calc_tau(alpha_n(v), beta_n(v))
+        tau_h = calc_tau(alpha_h(v), beta_h(v))
+
+        mdot = calc_xdot(m, m_inf, tau_m)
+        ndot = calc_xdot(n, n_inf, tau_n)
+        hdot = calc_xdot(h, h_inf, tau_h)
+
+        # Currents
+        i_na = g_na * m**3 * h * (v - E_na)
+        i_k = g_k * n**4 * (v - E_k)
+        i_l = g_l * (v - E_l)
         i_c = I(t)
 
-        # then calculate dv_dt: I(t) - i_na - i_k - i_l / C_m
         vdot = (i_c - i_na - i_k - i_l) / C_m
 
         return np.array([vdot, mdot, ndot, hdot])
@@ -149,7 +127,7 @@ def plot_trajectory(t, x, title, ylab=""):
     plt.show()
 
 
-dt = 0.1
+dt = 0.025
 T = 50
 t = np.arange(0.0, T + dt, dt)
 tau = 20
@@ -169,7 +147,46 @@ x0 = np.array(
 # integrate the system:
 # RC = RC_derivative(tau, I)
 # HH = HH_derivative(tau, x0, I)
-traj = euler_integrate(HH_derivative(tau, I), x0, t)
+traj = euler_integrate(HH_derivative(I), x0, t)
 
-# plot the results:
-plot_trajectory(t, traj, "RC circuit response to step current", "Voltage (V)")
+
+# Extract variables
+v = traj[:, 0]
+m = traj[:, 1]
+n = traj[:, 2]
+h = traj[:, 3]
+
+# Plot results
+plt.figure(figsize=(10, 8))
+
+# Voltage trace
+plt.subplot(4, 1, 1)
+plt.plot(t, v, label="Voltage (mV)")
+plt.axhline(-55, color="r", linestyle="--", label="Firing Threshold")
+plt.title("Hodgkin-Huxley Neuron Simulation")
+plt.ylabel("Voltage (mV)")
+plt.legend()
+plt.grid()
+
+# Gating variables
+plt.subplot(4, 1, 2)
+plt.plot(t, m, label="m")
+plt.ylabel("m")
+plt.legend()
+plt.grid()
+
+plt.subplot(4, 1, 3)
+plt.plot(t, n, label="n")
+plt.ylabel("n")
+plt.legend()
+plt.grid()
+
+plt.subplot(4, 1, 4)
+plt.plot(t, h, label="h")
+plt.xlabel("Time (ms)")
+plt.ylabel("h")
+plt.legend()
+plt.grid()
+
+plt.tight_layout()
+plt.show()
