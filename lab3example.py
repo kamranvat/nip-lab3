@@ -34,7 +34,7 @@ def calc_x_inf(alpha_x, beta_x):
     return x
 
 
-def calc_tau(alpha_x, beta_x):
+def calc_tau(alpha_x:float, beta_x:float):
     return 1 / (alpha_x + beta_x)
 
 
@@ -43,27 +43,34 @@ def calc_xdot(x, x_inf, tau):
     return -(1 / tau) * (x - x_inf)
 
 
-def alpha_n(v):
+def alpha_n(v:float):
     return 0.032 * ((v + 52) / 1 - np.exp(-(v + 52) / 50))
 
 
-def beta_n(v):
+def beta_n(v:float):
     return 0.5 * np.exp(-(v + 57) / 40)
 
 
-def alpha_m(v):
-    return 0.32 * ((v + 54) / 1 - np.exp(-(v + 54) / 4))
+def alpha_m(v:float):
+    alpha_m = 0.32 * ((v + 54) / 1 - np.exp(-(v + 54) / 4))
+    if type(v) == float:
+        print(v)
+
+    if type(alpha_m) == float:
+        print(alpha_m)
+
+    return alpha_m
 
 
-def beta_m(v):
+def beta_m(v:float):
     return 0.28 * ((v + 27) / np.exp((v + 27) / 5) - 1)
 
 
-def alpha_h(v):
+def alpha_h(v:float):
     return 0.128 * np.exp(-(v + 50) / 18)
 
 
-def beta_h(v):
+def beta_h(v:float):
     return 4 / (1 + np.exp(-(v + 27) / 5))
 
 
@@ -85,7 +92,7 @@ def gating_fct_l(g_l, v, E_l):
     return i_l
 
 
-def HH_derivative(tau, x0, I):
+def HH_derivative(tau, I):
     # I is I_c (the step current)
     # c_m dv/dt = i_c - i_na - i_k - i_l
     # all the parameters:
@@ -96,6 +103,8 @@ def HH_derivative(tau, x0, I):
     E_na = 50.0
     E_k = -90.0
     E_l = -65.0
+
+
 
     # get infs from current voltage
     m_inf = lambda v: calc_x_inf(alpha_m(v), beta_m(v))
@@ -111,10 +120,10 @@ def HH_derivative(tau, x0, I):
         # unpack x into V, m, n, h:
         v, m, n, h = x
 
-        # do all gate updates ( the calc_xdot function)
-        mdot = calc_xdot(m_inf(v), m_inf(v), tau_m(v))
-        ndot = calc_xdot(n_inf(v), n_inf(v), tau_n(v))
-        hdot = calc_xdot(h_inf(v), h_inf(v), tau_h(v))
+        # do all gate updates (the calc_xdot function)
+        mdot = calc_xdot(m, m_inf(v), tau_m(v))
+        ndot = calc_xdot(n, n_inf(v), tau_n(v))
+        hdot = calc_xdot(h, h_inf(v), tau_h(v))
 
         # calculate all currents (gating_fct_na, gating_fct_k, gating_fct_l)
         i_na = gating_fct_na(g_na, m, h, v, E_na)
@@ -160,7 +169,7 @@ x0 = np.array(
 # integrate the system:
 # RC = RC_derivative(tau, I)
 # HH = HH_derivative(tau, x0, I)
-traj = euler_integrate(HH_derivative(tau, x0, I), x0, t)
+traj = euler_integrate(HH_derivative(tau, I), x0, t)
 
 # plot the results:
 plot_trajectory(t, traj, "RC circuit response to step current", "Voltage (V)")
