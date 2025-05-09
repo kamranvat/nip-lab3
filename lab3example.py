@@ -157,6 +157,18 @@ def HH_derivative(I):
     return derivs
 
 
+def count_spikes(v_traj, thresh):
+    """return nr of spikes in v_traj"""
+    spikes = 0
+    for i in range(len(v_traj)-1):
+        v = v_traj[i+1]
+        v_prev = v_traj[i]
+        if v_prev < thresh and v > thresh:
+            spikes += 1
+
+    return spikes
+
+
 dt = 0.025
 T = 50
 t = np.arange(0.0, T + dt, dt)
@@ -175,5 +187,10 @@ x0 = np.array(
 
 # integrate the system:
 traj = euler_integrate(HH_derivative(I), x0, t)
+
+# voltage trace
+v_traj = traj[:, 0]
+
+print(count_spikes(v_traj, 0.0))
 
 plot_trajectories(traj)
