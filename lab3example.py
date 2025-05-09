@@ -72,6 +72,49 @@ def gating_fct_l(g_l, v, E_l):
     return i_l
 
 
+def plot_trajectories(traj):
+    # Extract variables
+    v = traj[:, 0]
+    m = traj[:, 1]
+    n = traj[:, 2]
+    h = traj[:, 3]
+
+    # Plot results
+    plt.figure(figsize=(10, 8))
+
+    # Voltage trace
+    plt.subplot(4, 1, 1)
+    plt.plot(t, v, label="Voltage (mV)")
+    plt.axhline(-55, color="r", linestyle="--", label="Firing Threshold")
+    plt.title("Hodgkin-Huxley Neuron Simulation")
+    plt.ylabel("Voltage (mV)")
+    plt.legend()
+    plt.grid()
+
+    # Gating variables
+    plt.subplot(4, 1, 2)
+    plt.plot(t, m, label="m")
+    plt.ylabel("m")
+    plt.legend()
+    plt.grid()
+
+    plt.subplot(4, 1, 3)
+    plt.plot(t, n, label="n")
+    plt.ylabel("n")
+    plt.legend()
+    plt.grid()
+
+    plt.subplot(4, 1, 4)
+    plt.plot(t, h, label="h")
+    plt.xlabel("Time (ms)")
+    plt.ylabel("h")
+    plt.legend()
+    plt.grid()
+
+    plt.tight_layout()
+    plt.show()
+
+
 def HH_derivative(I):
     # I is i_c (the step current) over time
     C_m = 1.0
@@ -133,43 +176,4 @@ x0 = np.array(
 # integrate the system:
 traj = euler_integrate(HH_derivative(I), x0, t)
 
-# Extract variables
-v = traj[:, 0]
-m = traj[:, 1]
-n = traj[:, 2]
-h = traj[:, 3]
-
-# Plot results
-plt.figure(figsize=(10, 8))
-
-# Voltage trace
-plt.subplot(4, 1, 1)
-plt.plot(t, v, label="Voltage (mV)")
-plt.axhline(-55, color="r", linestyle="--", label="Firing Threshold")
-plt.title("Hodgkin-Huxley Neuron Simulation")
-plt.ylabel("Voltage (mV)")
-plt.legend()
-plt.grid()
-
-# Gating variables
-plt.subplot(4, 1, 2)
-plt.plot(t, m, label="m")
-plt.ylabel("m")
-plt.legend()
-plt.grid()
-
-plt.subplot(4, 1, 3)
-plt.plot(t, n, label="n")
-plt.ylabel("n")
-plt.legend()
-plt.grid()
-
-plt.subplot(4, 1, 4)
-plt.plot(t, h, label="h")
-plt.xlabel("Time (ms)")
-plt.ylabel("h")
-plt.legend()
-plt.grid()
-
-plt.tight_layout()
-plt.show()
+plot_trajectories(traj)
