@@ -18,40 +18,37 @@ def euler_integrate(
     return x
 
 
-def RC_derivative(tau, I):
-    """f(x,t)"""
-
-    def deriv(t, x):
-        dx = -1 / tau * x + I(t)  # simplest possible differential equation
-        return np.array([dx])
-
-    return deriv
-
-
 def alpha_m(v):
     return 0.32 * (v + 54) / (1 - np.exp(-(v + 54) / 4))
+
 
 def beta_m(v):
     return 0.28 * (v + 27) / (np.exp((v + 27) / 5) - 1)
 
+
 def alpha_h(v):
     return 0.128 * np.exp(-(v + 50) / 18)
+
 
 def beta_h(v):
     return 4 / (1 + np.exp(-(v + 27) / 5))
 
+
 def alpha_n(v):
     return 0.032 * (v + 52) / (1 - np.exp(-(v + 52) / 5))
+
 
 def beta_n(v):
     return 0.5 * np.exp(-(v + 57) / 40)
 
-# Helper functions
+
 def calc_x_inf(alpha_x, beta_x):
     return alpha_x / (alpha_x + beta_x)
 
+
 def calc_tau(alpha_x, beta_x):
     return 1 / (alpha_x + beta_x)
+
 
 def calc_xdot(x, x_inf, tau):
     return -(1 / tau) * (x - x_inf)
@@ -76,9 +73,7 @@ def gating_fct_l(g_l, v, E_l):
 
 
 def HH_derivative(I):
-    # I is I_c (the step current)
-    # c_m dv/dt = i_c - i_na - i_k - i_l
-    # all the parameters:
+    # I is i_c (the step current) over time
     C_m = 1.0
     g_na = 50.0
     g_k = 10.0
@@ -87,19 +82,20 @@ def HH_derivative(I):
     E_k = -90.0
     E_l = -65.0
 
-
     def derivs(t, x):
         v, m, n, h = x
 
-        # Gating variables
+        # Steady values
         m_inf = calc_x_inf(alpha_m(v), beta_m(v))
         n_inf = calc_x_inf(alpha_n(v), beta_n(v))
         h_inf = calc_x_inf(alpha_h(v), beta_h(v))
 
+        # Taus
         tau_m = calc_tau(alpha_m(v), beta_m(v))
         tau_n = calc_tau(alpha_n(v), beta_n(v))
         tau_h = calc_tau(alpha_h(v), beta_h(v))
 
+        # Derivatives
         mdot = calc_xdot(m, m_inf, tau_m)
         ndot = calc_xdot(n, n_inf, tau_n)
         hdot = calc_xdot(h, h_inf, tau_h)
@@ -110,6 +106,7 @@ def HH_derivative(I):
         i_l = g_l * (v - E_l)
         i_c = I(t)
 
+        # Voltage change
         vdot = (i_c - i_na - i_k - i_l) / C_m
 
         return np.array([vdot, mdot, ndot, hdot])
@@ -117,24 +114,13 @@ def HH_derivative(I):
     return derivs
 
 
-def plot_trajectory(t, x, title, ylab=""):
-    plt.figure()
-    plt.plot(t, x)
-    plt.title(title)
-    plt.xlabel("time (ms)")
-    plt.ylabel(ylab)
-    plt.grid()
-    plt.show()
-
-
 dt = 0.025
 T = 50
 t = np.arange(0.0, T + dt, dt)
-tau = 20
 amp = 3.0
 # step current:
 I = lambda t: amp if 10.0 <= t <= 20.0 else 0.0
-# initial gating at steady state for v0:
+# initial state:
 x0 = np.array(
     [
         -65.0,
@@ -145,10 +131,7 @@ x0 = np.array(
 )
 
 # integrate the system:
-# RC = RC_derivative(tau, I)
-# HH = HH_derivative(tau, x0, I)
 traj = euler_integrate(HH_derivative(I), x0, t)
-
 
 # Extract variables
 v = traj[:, 0]
