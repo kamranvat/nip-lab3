@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 
 
 def euler_integrate(
-    derivs, # function
-    x0, # initial state
-    t, # time
+    derivs,  # function
+    x0,  # initial state
+    t,  # time
 ):
     x = np.empty((len(t), len(x0)))
 
@@ -160,8 +160,8 @@ def HH_derivative(I):
 def count_spikes(v_traj, thresh):
     """return nr of spikes in v_traj"""
     spikes = 0
-    for i in range(len(v_traj)-1):
-        v = v_traj[i+1]
+    for i in range(len(v_traj) - 1):
+        v = v_traj[i + 1]
         v_prev = v_traj[i]
         if v_prev < thresh and v > thresh:
             spikes += 1
@@ -169,7 +169,9 @@ def count_spikes(v_traj, thresh):
     return spikes
 
 
-def run_experiment(T=50, dt=0.025, amp=3.0, i_c_start=10.0, i_c_end=20.0, i_c_rest=0.0, v_0=-65.0):
+def run_experiment(
+    T=50, dt=0.025, amp=3.0, i_c_start=10.0, i_c_end=20.0, i_c_rest=0.0, v_0=-65.0
+):
     t = np.arange(0.0, T + dt, dt)
     # step current:
     I = lambda t: amp if i_c_start <= t <= i_c_end else i_c_rest
@@ -186,11 +188,41 @@ def run_experiment(T=50, dt=0.025, amp=3.0, i_c_start=10.0, i_c_end=20.0, i_c_re
     # integrate the system:
     traj = euler_integrate(HH_derivative(I), x0, t)
 
-    # voltage trace
-    v_traj = traj[:, 0]
-
-    print(count_spikes(v_traj, 0.0))
     return traj, t
 
-traj, t = run_experiment()
-plot_trajectories(traj, t)
+
+def plot_fi_curve(current, spike_count):
+    plt.figure(figsize=(8, 6))
+    plt.plot(current, spike_count, marker="o")
+    plt.title("F-I Curve")
+    plt.xlabel("Current (mA)")
+    plt.ylabel("Spike Count")
+    plt.grid()
+    plt.show()
+
+
+# Task 1, pt. 1 - run a single experiment, T = 50, amp = 3.0, i_c_start = 10.0, i_c_end = 20.0
+all_traces, t = run_experiment(
+    T=50, dt=0.025, amp=3.0, i_c_start=10.0, i_c_end=20.0, i_c_rest=0.0, v_0=-65.0
+)
+plot_trajectories(all_traces, t)
+
+# Task 1, pt. 2 - run 51 experiments:
+exp_nr = 51
+currents = np.linspace(0.0, 10.0, exp_nr)  # TODO check docs
+onset = 50
+cutoff = 200
+v_traces = []
+spike_counts = []
+thresh = 0.0
+
+print("Running experiments...")
+for i in range(0, exp_nr):
+    amp = currents[i]
+    all_traces, t = run_experiment(T=250, amp=amp, i_c_start=onset, i_c_end=cutoff)
+    if i % 10 == 0:
+        print(i, "of", exp_nr, "...")
+    v_trace = all_traces[:, 0]
+    spike_counts.append(count_spikes(v_trace, thresh))
+
+plot_fi_curve(currents, spike_counts)
