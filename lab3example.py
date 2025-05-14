@@ -202,6 +202,7 @@ def plot_fi_curve(current, spike_count):
 
 
 # Task 1, pt. 1 - run a single experiment, T = 50, amp = 3.0, i_c_start = 10.0, i_c_end = 20.0
+print("Running single experiment...")
 all_traces, t = run_experiment(
     T=50, dt=0.025, amp=3.0, i_c_start=10.0, i_c_end=20.0, i_c_rest=0.0, v_0=-65.0
 )
@@ -216,7 +217,7 @@ v_traces = []
 spike_counts = []
 thresh = 0.0
 
-print("Running experiments...")
+print("Running multiple experiments for F-I-curve...")
 for i in range(0, exp_nr):
     amp = currents[i]
     all_traces, t = run_experiment(T=250, amp=amp, i_c_start=onset, i_c_end=cutoff)
